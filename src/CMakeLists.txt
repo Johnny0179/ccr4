@@ -4,6 +4,7 @@ set(src_list
     hw/can.cc
     hw/nmt.cc
     hw/maxon.cc
+    hw/robot.cc
     freemodbus_tcp/freemodbus_tcp.c
     echo/echo.c
     delay/delay.cc

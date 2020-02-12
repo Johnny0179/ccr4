@@ -43,7 +43,7 @@ private:
   static const __s8 kCfgFail = -1;
 
 public:
-  maxon(/* args */);
+  maxon(__u16 motor_id);
   ~maxon();
 
   friend class nmt;

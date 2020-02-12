@@ -7,6 +7,7 @@ extern "C"
 
 // c++11 library
 #include <thread>
+#include "robot.h"
 
 // extern variables
 extern USHORT usRegHoldingBuf[REG_HOLDING_NREGS];
@@ -18,6 +19,15 @@ static void echo_task();
 int main()
 {
   int res;
+
+  // nmt
+  nmt nmt;
+
+  // init motors with motor id
+  maxon upwheel(2), upclaw(1), pulley1(3), pulley2(4), downclaw1(5), downclaw2(6);
+
+  // robot
+  robot robot(nmt,upwheel, upclaw, pulley1, pulley2, downclaw1, downclaw2);
 
   // modbus thread
   std::thread modbus_thread(modbus_task);

@@ -1,7 +1,9 @@
 #include "maxon.h"
 
-maxon::maxon(/* args */)
+// init list
+maxon::maxon(__u16 motor_id)
 {
+    parameter.motor_id_ = motor_id;
 }
 
 maxon::~maxon()

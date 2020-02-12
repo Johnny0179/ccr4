@@ -18,7 +18,7 @@ void nmt::NMTstart(void)
     nmt_frame.can_dlc = 2;
     nmt_frame.data[0] = kNMT_Start_Node;
     nmt_frame.data[1] = 0;
-    if (can0.send(&nmt_frame) != -1)
+    if (/* can0. */ send(&nmt_frame) != -1)
     {
         printf("Start all nodes!");
     }
@@ -37,7 +37,7 @@ void nmt::NMTstart(__u8 slave_id)
     nmt_frame.can_dlc = 2;
     nmt_frame.data[0] = kNMT_Start_Node;
     nmt_frame.data[1] = slave_id;
-    if (can0.send(&nmt_frame) != -1)
+    if (/* can0. */ send(&nmt_frame) != -1)
     {
         if (slave_id != 0)
         {
@@ -63,7 +63,7 @@ void nmt::NMTPreOperation(__u8 slave_id)
     nmt_frame.can_dlc = 2;
     nmt_frame.data[0] = kNMT_Enter_PreOperational;
     nmt_frame.data[1] = 0;
-    if (can0.send(&nmt_frame) != -1)
+    if (/* can0. */ send(&nmt_frame) != -1)
     {
         printf("Node%d enter pre operation state!\n", slave_id);
     }
@@ -81,7 +81,7 @@ void nmt::NMTstop(__u8 slave_id)
     nmt_frame.can_dlc = 2;
     nmt_frame.data[0] = kNMT_Stop_Node;
     nmt_frame.data[1] = slave_id;
-    if (can0.send(&nmt_frame) != -1)
+    if (/* can0. */ send(&nmt_frame) != -1)
     {
         if (slave_id != 0)
         {
@@ -106,7 +106,7 @@ void nmt::CmdSync()
     nmt_frame.can_id = kSYNC;
     nmt_frame.can_dlc = 0;
 
-    can0.send(&nmt_frame);
+    /* can0. */ send(&nmt_frame);
 }
 
 // txpdo1
@@ -120,7 +120,7 @@ ssize_t nmt::TxPdo1(__u8 slave_id, __u16 ctrl_wrd)
     tx_pdo1_frame.data[0] = ctrl_wrd & 0xff;
     tx_pdo1_frame.data[1] = (ctrl_wrd >> 8) & 0xff;
 
-    return can0.send(&tx_pdo1_frame);
+    return /* can0. */ send(&tx_pdo1_frame);
 }
 
 // txpdo2
@@ -142,7 +142,7 @@ ssize_t nmt::TxPdo2(__u8 slave_id, __u16 ctrl_wrd, __s32 pos_sv,
     tx_pdo2_frame.data[5] = (pos_sv >> 24) & 0xff;
     tx_pdo2_frame.data[6] = mode_of_operation;
 
-    return can0.send(&tx_pdo2_frame);
+    return /* can0. */ send(&tx_pdo2_frame);
 }
 
 // txpdo3
@@ -159,7 +159,7 @@ ssize_t nmt::TxPdo3(__u8 slave_id, __s16 target_torque,
     tx_pdo3_frame.data[1] = (target_torque >> 8) & 0xff;
     tx_pdo3_frame.data[2] = mode_of_operation;
 
-    return can0.send(&tx_pdo3_frame);
+    return /* can0. */ send(&tx_pdo3_frame);
 }
 
 // txpdo4
@@ -176,7 +176,7 @@ ssize_t nmt::TxPdo4(__u8 slave_id, __s32 speed_set, __u16 mode_of_operation)
     tx_pdo4_frame.data[3] = (speed_set >> 24) & 0xff;
     tx_pdo4_frame.data[4] = mode_of_operation;
 
-    return can0.send(&tx_pdo4_frame);
+    return /* can0. */ send(&tx_pdo4_frame);
 }
 
 // rxpdo1
@@ -187,15 +187,18 @@ ssize_t nmt::RxPdo1(__u8 id)
     rx_pdo1_frame.can_id = kPDO1tx + id;
     rx_pdo1_frame.can_dlc = 0;
 
-    return can0.send(&rx_pdo1_frame);
+    return /* can0. */ send(&rx_pdo1_frame);
 }
 
-void nmt::MotorParaRead(maxon &motor)
+maxon_type nmt::MotorParaRead(maxon &motor)
 {
     can_frame frame;
     can_frame *recv_frame = &frame;
 
-    can0.receive(recv_frame);
+    // store the motor parameter
+    maxon_type motor_para;
+
+    /* can0. */ receive(recv_frame);
 
     __u16 cob_id = recv_frame->can_id & (~0x007F);
     __u16 SlaveId = (recv_frame->can_id & 0x7F);
@@ -243,4 +246,8 @@ void nmt::MotorParaRead(maxon &motor)
     default:
         break;
     }
+
+    motor_para = motor.parameter;
+    
+    return motor_para;
 }

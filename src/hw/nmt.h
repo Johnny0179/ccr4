@@ -4,7 +4,7 @@
 
 class maxon;
 
-class nmt
+class nmt : public can
 {
 private:
   // NMT Command Specifier, sent by master to change a slave state, Should not be modified.
@@ -33,15 +33,15 @@ private:
   static const __u16 kNODE_GUARD = (__u16)0xE << 7;
   static const __u16 kLSS = (__u16)0xF << 7;
 
-  // can device
-  can can0;
-
   // delay_time wait for epos 1000us
   static const __u32 kDelayEpos = 1000;
 
 public:
   nmt(/* args */);
   ~nmt();
+
+  // can device
+  // can can0;
 
   /* -------------------------NMT functions------------------------------ */
   void NMTstart(void);
@@ -67,5 +67,6 @@ public:
   // ssize_t RxPdo3(__u8 id);
   // ssize_t RxPdo4(__u8 id);
 
-  void MotorParaRead(maxon &motor);
+  struct maxon_type MotorParaRead(maxon &motor);
+  
 };
