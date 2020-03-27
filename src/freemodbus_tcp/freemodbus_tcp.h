@@ -43,12 +43,15 @@
 /* ----------------------- Modbus TCP port ----------------------------------*/
 #define MODBUS_TCP_PORT 1502
 
+#include "echo.h"
+
 /* ----------------------- Defines ------------------------------------------*/
 #define PROG "freemodbus"
 
 #define REG_INPUT_START 1000
 #define REG_INPUT_NREGS 4
-#define REG_HOLDING_START 1
-#define REG_HOLDING_NREGS 1000
+#define REG_HOLDING_START 0
+
+#define REG_HOLDING_NREGS (MOTOR_NUM+1)*MAX_RPMSG_SIZE/2
 
 #endif

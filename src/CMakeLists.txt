@@ -6,15 +6,15 @@ set(src_list
     hw/maxon.cc
     hw/robot.cc
     freemodbus_tcp/freemodbus_tcp.c
-    echo/echo.c
+    openamp/echo.c
     delay/delay.cc
     )
 
-set(elf_file ${project_name}.elf)
+set(elf_file ${project_name})
 
 set(INC_DIR hw
             delay
-            echo
+            openamp
             freemodbus_tcp
             )
 
