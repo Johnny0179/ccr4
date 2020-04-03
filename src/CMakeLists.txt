@@ -6,7 +6,7 @@ set(src_list
     hw/maxon.cc
     hw/robot.cc
     freemodbus_tcp/freemodbus_tcp.c
-    openamp/echo.c
+    openamp/openamp.c
     delay/delay.cc
     )
 

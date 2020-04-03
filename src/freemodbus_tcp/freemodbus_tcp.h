@@ -43,7 +43,7 @@
 /* ----------------------- Modbus TCP port ----------------------------------*/
 #define MODBUS_TCP_PORT 1502
 
-#include "echo.h"
+#include "openamp.h"
 
 /* ----------------------- Defines ------------------------------------------*/
 #define PROG "freemodbus"

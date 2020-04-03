@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "openamp.h": "c",
+        "freemodbus_tcp.h": "c"
+    }
+}

@@ -1,32 +1,7 @@
-#include "echo.h"
+#include "openamp.h"
 #include "freemodbus_tcp.h"
 
-/*
- * echo_test.c
- *
- *  Created on: Oct 4, 2014
- *      Author: etsam
- */
-
-/*
- * Test application that data integraty of inter processor
- * communication from linux userspace to a remote software
- * context. The application sends chunks of data to the
- * remote processor. The remote side echoes the data back
- * to application which then validates the data returned.
- */
-
-// struct _payload
-// {
-// 	unsigned long num;
-// 	unsigned long size;
-// 	char data[];
-// };
-
-static int charfd = -1, fd = -1, err_cnt;
-
-// struct _payload *i_payload;
-// struct _payload *r_payload;
+static int charfd = -1, fd = -1;
 
 #define RPMSG_GET_KFIFO_SIZE 1
 #define RPMSG_GET_AVAIL_DATA_SIZE 2
@@ -182,37 +157,15 @@ static int get_rpmsg_chrdev_fd(const char *rpmsg_dev_name,
 	return -EINVAL;
 }
 
-int echo_test()
+int OpenAMPInit(void)
 {
-	int ret, i, j;
-	int size, bytes_rcvd, bytes_sent;
-	err_cnt = 0;
-	int opt;
+	int ret;
 	char *rpmsg_dev = "virtio0.rpmsg-openamp-demo-channel.-1.0";
-	int ntimes = 1;
-	char fpath[256];
 	char rpmsg_char_name[16];
+	char fpath[256];
 	struct rpmsg_endpoint_info eptinfo;
 	char ept_dev_name[16];
 	char ept_dev_path[32];
-
-	// while ((opt = getopt(argc, argv, "d:n:")) != -1)
-	// {
-	// 	switch (opt)
-	// 	{
-	// 	case 'd':
-	// 		rpmsg_dev = optarg;
-	// 		break;
-	// 	case 'n':
-	// 		ntimes = atoi(optarg);
-	// 		break;
-	// 	default:
-	// 		printf("getopt return unsupported option: -%c\n", opt);
-	// 		break;
-	// 	}
-	// }
-	printf("\r\n Echo test start \r\n");
-
 	/* Load rpmsg_char driver */
 	printf("\r\nMaster>probe rpmsg_char\r\n");
 	ret = system("modprobe rpmsg_char");
@@ -259,32 +212,39 @@ int echo_test()
 		return -1;
 	}
 
-	// i_payload = (struct _payload *)malloc(2 * sizeof(unsigned long) + PAYLOAD_MAX_SIZE);
-	// r_payload = (struct _payload *)malloc(2 * sizeof(unsigned long) + PAYLOAD_MAX_SIZE);
+	return 0;
+}
 
-	// if (i_payload == 0 || r_payload == 0)
-	// {
-	// 	printf("ERROR: Failed to allocate memory for payload.\n");
-	// 	return -1;
-	// }
+int echo_test()
+{
+	int i;
+	int bytes_rcvd, bytes_sent;
+
+	// init the openAMP
+	// OpenAMPInit();
 
 	// messege transfer
-	for (j = 0; j <= MOTOR_NUM; j++)
+	for (i = 0; i <= MOTOR_NUM; i++)
 	{
 		printf("\r\n **********************************");
 		printf("****\r\n");
-		printf("\r\n  Openamp coummunication round: %d \r\n", j);
+		printf("\r\n  Openamp coummunication round: %d \r\n", i);
 		printf("\r\n **********************************");
 		printf("****\r\n");
 
-		//write data
-		bytes_sent = write(fd, &usRegHoldingBuf[i * MAX_RPMSG_SIZE / 2],
-						   MAX_RPMSG_SIZE);
+		printf("usRegHoldingBuf[%d]:%d\r\n", i * MAX_RPMSG_SIZE / 2, usRegHoldingBuf[i * MAX_RPMSG_SIZE / 2]);
+
+		bytes_sent = write(fd, &usRegHoldingBuf[i * MAX_RPMSG_SIZE / 2], MAX_RPMSG_SIZE);
+
 		if (bytes_sent <= 0)
 		{
 			printf("\r\n Error sending data");
 			printf(" .. \r\n");
 			break;
+		}
+		else
+		{
+			printf("\r\n Send %d bytes", bytes_sent);
 		}
 
 		// read the data
@@ -292,69 +252,22 @@ int echo_test()
 		{
 			bytes_rcvd = read(fd, &usRegHoldingBuf[i * MAX_RPMSG_SIZE / 2], MAX_RPMSG_SIZE);
 		} while ((bytes_rcvd < MAX_RPMSG_SIZE) || (bytes_rcvd < 0));
-		// for (i = 0, size = PAYLOAD_MIN_SIZE; i < NUM_PAYLOADS;
-		// 	 i++, size++)
-		// {
-		// 	int k;
+		printf("\r\n Read %d bytes", bytes_rcvd);
+		printf("usRegHoldingBuf[%d]:%d\r\n", i * MAX_RPMSG_SIZE / 2, usRegHoldingBuf[i * MAX_RPMSG_SIZE / 2]);
 
-		// 	i_payload->num = i;
-		// 	i_payload->size = size;
-
-		// 	/* Mark the data buffer. */
-		// 	memset(&(i_payload->data[0]), 0xA5, size);
-
-		// 	printf("\r\n sending payload number");
-		// 	printf(" %ld of size %d\r\n", i_payload->num,
-		// 		   (2 * sizeof(unsigned long)) + size);
-
-		// 	bytes_sent = write(fd, i_payload,
-		// 					   (2 * sizeof(unsigned long)) + size);
-
-		// 	if (bytes_sent <= 0)
-		// 	{
-		// 		printf("\r\n Error sending data");
-		// 		printf(" .. \r\n");
-		// 		break;
-		// 	}
-		// 	printf("echo test: sent : %d\n", bytes_sent);
-
-		// 	r_payload->num = 0;
-		// 	bytes_rcvd = read(fd, r_payload,
-		// 					  (2 * sizeof(unsigned long)) + PAYLOAD_MAX_SIZE);
-		// 	while (bytes_rcvd <= 0)
-		// 	{
-		// 		usleep(10000);
-		// 		bytes_rcvd = read(fd, r_payload,
-		// 						  (2 * sizeof(unsigned long)) + PAYLOAD_MAX_SIZE);
-		// 	}
-		// 	printf(" received payload number ");
-		// 	printf("%ld of size %d\r\n", r_payload->num, bytes_rcvd);
-
-		// 	/* Validate data buffer integrity. */
-		// 	for (k = 0; k < r_payload->size; k++)
-		// 	{
-
-		// 		if (r_payload->data[k] != 0xA5)
-		// 		{
-		// 			printf(" \r\n Data corruption");
-		// 			printf(" at index %d \r\n", k);
-		// 			err_cnt++;
-		// 			break;
-		// 		}
-		// 	}
-		// 	bytes_rcvd = read(fd, r_payload,
-		// 					  (2 * sizeof(unsigned long)) + PAYLOAD_MAX_SIZE);
-		// }
 		printf("\r\n **********************************");
 		printf("****\r\n");
-		printf("\r\n Openamp communication done!\r\n");
+		printf("\r\n Openamp communication round %d done!\r\n", i);
 		printf("\r\n **********************************");
 		printf("****\r\n");
 	}
 
-	// free(i_payload);
-	// free(r_payload);
+	return 0;
+}
 
+// stop the openamp
+int OpenAMPStop(void)
+{
 	close(fd);
 	if (charfd >= 0)
 		close(charfd);

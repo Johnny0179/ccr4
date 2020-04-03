@@ -17,8 +17,16 @@
 #define MOTOR_NUM 6
 
 // max rpmsg bytes
-#define MAX_RPMSG_SIZE (512-16)
+#define MAX_RPMSG_SIZE (512 - 16)
 
 int echo_test(void);
+
+// init the openamp 
+int OpenAMPInit(void);
+
+// stop the openamp 
+int OpenAMPStop(void);
+
+// exit openamp
 
 #endif
