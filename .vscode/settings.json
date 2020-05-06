@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "openamp.h": "c",
-        "freemodbus_tcp.h": "c"
+        "freemodbus_tcp.h": "c",
+        "iostream": "cpp",
+        "ostream": "cpp"
     }
 }

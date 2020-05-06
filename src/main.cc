@@ -1,17 +1,17 @@
 // C files
-extern "C"
-{
+
 #include "openamp.h"
 #include "freemodbus_tcp.h"
-}
 
 // c++11 library
 #include <thread>
 #include <iostream>
 #include "robot.h"
+#include "inter_core_com.h"
 
 // extern variables
 extern USHORT usRegHoldingBuf[REG_HOLDING_NREGS];
+extern r5_cmd R5_cmd;
 
 // thread function declaration
 static void modbus_task();
@@ -19,7 +19,7 @@ static void echo_task();
 
 int main()
 {
-  int res, i;
+  int i;
   for (i = 0; i <= MOTOR_NUM; i++)
   {
     usRegHoldingBuf[i * MAX_RPMSG_SIZE / 2] = i;
@@ -35,8 +35,8 @@ int main()
   // robot robot(nmt,upwheel, upclaw, pulley1, pulley2, downclaw1, downclaw2);
 
   // modbus thread
-  // std::thread modbus_thread(modbus_task);
-  // modbus_thread.detach();
+  std::thread modbus_thread(modbus_task);
+  modbus_thread.detach();
 
   // openamp thread
   std::thread openamp_thread(echo_task);
@@ -89,22 +89,51 @@ void modbus_task()
 
 void echo_task()
 {
-  // openAMP init
-  if (0 == OpenAMPInit())
+  int res;
+  // openAMP load firmware
+  res = OpenAMPLoadFirmware();
+  if (0 == res)
   {
-    std::cout << "OpenAMP init success!\r\n"
+    std::cout << "\rOpenAMP load firmware success!\r\n"
               << std::endl;
   }
   else
   {
-    std::cout << "OpenAMP init Failed!\r\n"
+    std::cout << "\rOpenAMP load firmware Failed!\r\n"
               << std::endl;
   }
+
+  // must wait remote processor init
+  sleep(5);
+
+  std::cout << "\rLoad OpenAMP device driver!\r\n"
+            << std::endl;
+  // load device driver
+  res = OpenAMPLoadDriver();
+  std::cout << "\rLoad OpenAMP device driver success!\r\n"
+            << std::endl;
+
+  // wait remote processor init
+  sleep(5);
+
   for (;;)
   {
-    echo_test();
-    // refresh rate 1ms
-    // usleep(1000);
-    sleep(1);
+    // start nmt
+    R5_cmd.nmt_control = 1;
+
+    // echo_test();
+    OpenAMPTest();
+
+    sleep(2);
+
+    // stop nmt
+    R5_cmd.nmt_control=2;
+
+        // echo_test();
+    OpenAMPTest();
+
+    sleep(2);
+    // break;
   }
+  OpenAMPStop();
 }

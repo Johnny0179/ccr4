@@ -18,6 +18,11 @@
 #include <linux/ioctl.h>
 #include <linux/types.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /**
  * struct rpmsg_endpoint_info - endpoint info representation
  * @name: name of service
@@ -32,5 +37,10 @@ struct rpmsg_endpoint_info {
 
 #define RPMSG_CREATE_EPT_IOCTL	_IOW(0xb5, 0x1, struct rpmsg_endpoint_info)
 #define RPMSG_DESTROY_EPT_IOCTL	_IO(0xb5, 0x2)
+
+// exit openamp
+#ifdef __cplusplus
+}
+#endif
 
 #endif

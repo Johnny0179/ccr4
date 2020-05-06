@@ -40,18 +40,27 @@
 #include "mb.h"
 #include "mbport.h"
 
-/* ----------------------- Modbus TCP port ----------------------------------*/
-#define MODBUS_TCP_PORT 1502
-
 #include "openamp.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 /* ----------------------- Defines ------------------------------------------*/
 #define PROG "freemodbus"
 
+/* ----------------------- Modbus TCP port ----------------------------------*/
+#define MODBUS_TCP_PORT 1502
+
 #define REG_INPUT_START 1000
 #define REG_INPUT_NREGS 4
-#define REG_HOLDING_START 0
+#define REG_HOLDING_START 1
 
 #define REG_HOLDING_NREGS (MOTOR_NUM+1)*MAX_RPMSG_SIZE/2
+
+// exit openamp
+#ifdef __cplusplus
+}
+#endif
 
 #endif

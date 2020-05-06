@@ -1,5 +1,10 @@
 #include "freemodbus_tcp.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 USHORT usRegInputStart = REG_INPUT_START;
 USHORT usRegInputBuf[REG_INPUT_NREGS];
 
@@ -86,3 +91,8 @@ eMBErrorCode eMBRegDiscreteCB(UCHAR *pucRegBuffer, USHORT usAddress,
 {
   return MB_ENOREG;
 }
+
+// exit openamp
+#ifdef __cplusplus
+}
+#endif

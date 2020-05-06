@@ -16,6 +16,7 @@ set(INC_DIR hw
             delay
             openamp
             freemodbus_tcp
+            common
             )
 
 # add library

@@ -1,7 +1,6 @@
 #include "openamp.h"
+#include "inter_core_com.h"
 #include "freemodbus_tcp.h"
-
-static int charfd = -1, fd = -1;
 
 #define RPMSG_GET_KFIFO_SIZE 1
 #define RPMSG_GET_AVAIL_DATA_SIZE 2
@@ -17,6 +16,53 @@ static int charfd = -1, fd = -1;
 
 // extern variables
 extern USHORT usRegHoldingBuf[REG_HOLDING_NREGS];
+
+char *rpmsg_dev = "virtio0.rpmsg-openamp-demo-channel.-1.0";
+char rpmsg_char_name[16];
+char fpath[256];
+struct rpmsg_endpoint_info eptinfo;
+char ept_dev_name[16];
+char ept_dev_path[32];
+
+r5_cmd R5_cmd;
+r5_state R5_state;
+
+static int charfd = -1, fd = -1;
+char sbuf[512];
+int r5_id = 0;
+
+/* write a string to an existing and writtable file */
+static int file_write(char *path, char *str)
+{
+	int fd;
+	ssize_t bytes_written;
+	size_t str_sz;
+
+	fd = open(path, O_WRONLY);
+	if (fd == -1)
+	{
+		perror("Error");
+		return -1;
+	}
+	str_sz = strlen(str);
+	bytes_written = write(fd, str, str_sz);
+	if (bytes_written != str_sz)
+	{
+		if (bytes_written == -1)
+		{
+			perror("Error");
+		}
+		close(fd);
+		return -1;
+	}
+
+	if (-1 == close(fd))
+	{
+		perror("Error");
+		return -1;
+	}
+	return 0;
+}
 
 static int rpmsg_create_ept(int rpfd, struct rpmsg_endpoint_info *eptinfo)
 {
@@ -157,15 +203,89 @@ static int get_rpmsg_chrdev_fd(const char *rpmsg_dev_name,
 	return -EINVAL;
 }
 
-int OpenAMPInit(void)
+int OpenAMPLoadFirmware(void)
 {
 	int ret;
-	char *rpmsg_dev = "virtio0.rpmsg-openamp-demo-channel.-1.0";
-	char rpmsg_char_name[16];
-	char fpath[256];
-	struct rpmsg_endpoint_info eptinfo;
-	char ept_dev_name[16];
-	char ept_dev_path[32];
+
+	/* Bring up remote firmware */
+	printf("\r\nMaster>Loading remote firmware\r\n");
+
+	/* Write firmware name to remoteproc sysfs interface */
+	sprintf(sbuf,
+			"/sys/class/remoteproc/remoteproc%u/firmware",
+			r5_id);
+
+	if (0 != file_write(sbuf, "r5-0-freertos.elf"))
+	{
+		return -EINVAL;
+	}
+
+	/* Tell remoteproc to load and start remote cpu */
+	sprintf(sbuf,
+			"/sys/class/remoteproc/remoteproc%u/state",
+			r5_id);
+	if (0 != file_write(sbuf, "start"))
+	{
+		return -EINVAL;
+	}
+	else
+	{
+		return 0;
+	}
+
+	// /* Load rpmsg_char driver */
+	// printf("\r\nMaster>probe rpmsg_char\r\n");
+	// ret = system("modprobe rpmsg_char");
+	// if (ret < 0)
+	// {
+	// 	perror("Failed to load rpmsg_char driver.\n");
+	// 	return -EINVAL;
+	// }
+
+	// printf("\r\n Open rpmsg dev %s! \r\n", rpmsg_dev);
+	// sprintf(fpath, "%s/devices/%s", RPMSG_BUS_SYS, rpmsg_dev);
+	// if (access(fpath, F_OK))
+	// {
+	// 	fprintf(stderr, "Not able to access rpmsg device %s, %s\n",
+	// 			fpath, strerror(errno));
+	// 	return -EINVAL;
+	// }
+	// ret = bind_rpmsg_chrdev(rpmsg_dev);
+	// if (ret < 0)
+	// 	return ret;
+	// charfd = get_rpmsg_chrdev_fd(rpmsg_dev, rpmsg_char_name);
+	// if (charfd < 0)
+	// 	return charfd;
+
+	// /* Create endpoint from rpmsg char driver */
+	// strcpy(eptinfo.name, "rpmsg-openamp-demo-channel");
+	// eptinfo.src = 0;
+	// eptinfo.dst = 0xFFFFFFFF;
+	// ret = rpmsg_create_ept(charfd, &eptinfo);
+	// if (ret)
+	// {
+	// 	printf("failed to create RPMsg endpoint.\n");
+	// 	return -EINVAL;
+	// }
+	// if (!get_rpmsg_ept_dev_name(rpmsg_char_name, eptinfo.name,
+	// 							ept_dev_name))
+	// 	return -EINVAL;
+	// sprintf(ept_dev_path, "/dev/%s", ept_dev_name);
+	// fd = open(ept_dev_path, O_RDWR | O_NONBLOCK);
+	// if (fd < 0)
+	// {
+	// 	perror("Failed to open rpmsg device.");
+	// 	close(charfd);
+	// 	return -1;
+	// }
+
+	// return 0;
+}
+
+int OpenAMPLoadDriver(void)
+{
+	int ret;
+
 	/* Load rpmsg_char driver */
 	printf("\r\nMaster>probe rpmsg_char\r\n");
 	ret = system("modprobe rpmsg_char");
@@ -220,9 +340,6 @@ int echo_test()
 	int i;
 	int bytes_rcvd, bytes_sent;
 
-	// init the openAMP
-	// OpenAMPInit();
-
 	// messege transfer
 	for (i = 0; i <= MOTOR_NUM; i++)
 	{
@@ -271,5 +388,56 @@ int OpenAMPStop(void)
 	close(fd);
 	if (charfd >= 0)
 		close(charfd);
+
+	system("modprobe -r rpmsg_char");
+	sprintf(sbuf,
+			"/sys/class/remoteproc/remoteproc%u/state",
+			r5_id);
+	(void)file_write(sbuf, "stop");
+
+	return 0;
+}
+
+int OpenAMPTest(void)
+{
+	int bytes_rcvd, bytes_sent;
+	u8 temp_buff[MAX_RPMSG_SIZE] = {0};
+
+	R5_state.rpmsg_type = READ_R5_STATE_FROM_APU;
+	R5_cmd.rpmsg_type=SEND_R5_CMD_FROM_APU;
+
+	printf("\r\n **********************************");
+	printf("\r\n  Openamp test\r\n");
+
+
+
+	// copy the date
+	memcpy(temp_buff, &R5_cmd, sizeof(r5_cmd));
+
+	// read the r5 core state
+	bytes_sent = write(fd, temp_buff, MAX_RPMSG_SIZE);
+
+	if (bytes_sent <= 0)
+	{
+		printf("\r\n Error sending data\n");
+		printf(" .. \r\n");
+	}
+	else
+	{
+		printf("\r\n Send %d bytes\n", bytes_sent);
+	}
+
+	// read the data
+	do
+	{
+		bytes_rcvd = read(fd, temp_buff, MAX_RPMSG_SIZE);
+	} while ((bytes_rcvd < MAX_RPMSG_SIZE) || (bytes_rcvd < 0));
+	printf("\rRead %d bytes\n", bytes_rcvd);
+
+	// copy the r5 state
+	memcpy(&R5_state, temp_buff, sizeof(r5_state));
+
+	printf("\rps core tmp:%d\n", R5_state.ps_core_temp);
+	printf("\rpl core tmp:%d\n", R5_state.pl_core_temp);
 	return 0;
 }
