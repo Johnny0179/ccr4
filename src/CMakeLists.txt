@@ -1,22 +1,24 @@
 # add sources here
 set(src_list 
     main.cc
-    hw/can.cc
-    hw/nmt.cc
-    hw/maxon.cc
-    hw/robot.cc
+    # hw/can.cc
+    # hw/nmt.cc
+    # hw/maxon.cc
+    # hw/robot.cc
     freemodbus_tcp/freemodbus_tcp.c
     openamp/openamp.c
-    delay/delay.cc
+    # delay/delay.cc
+    robot/robot.cc
+    robot/r5_controllers/r5_controllers.cc
     )
 
 set(elf_file ${project_name})
 
-set(INC_DIR hw
-            delay
-            openamp
+set(INC_DIR openamp
             freemodbus_tcp
             common
+            robot
+            robot/r5_controllers
             )
 
 # add library

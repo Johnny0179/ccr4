@@ -14,6 +14,9 @@
 
 #define RPMSG_BUS_SYS "/sys/bus/rpmsg"
 
+// mutex
+static pthread_mutex_t rpmsg_mutex;
+
 // extern variables
 extern USHORT usRegHoldingBuf[REG_HOLDING_NREGS];
 
@@ -205,20 +208,18 @@ static int get_rpmsg_chrdev_fd(const char *rpmsg_dev_name,
 
 int OpenAMPLoadFirmware(void)
 {
-	int ret;
+	// /* Bring up remote firmware */
+	// printf("\r\nMaster>Loading remote firmware\r\n");
 
-	/* Bring up remote firmware */
-	printf("\r\nMaster>Loading remote firmware\r\n");
+	// /* Write firmware name to remoteproc sysfs interface */
+	// sprintf(sbuf,
+	// 		"/sys/class/remoteproc/remoteproc%u/firmware",
+	// 		r5_id);
 
-	/* Write firmware name to remoteproc sysfs interface */
-	sprintf(sbuf,
-			"/sys/class/remoteproc/remoteproc%u/firmware",
-			r5_id);
-
-	if (0 != file_write(sbuf, "r5-0-freertos.elf"))
-	{
-		return -EINVAL;
-	}
+	// if (0 != file_write(sbuf, "r5-0-freertos.elf"))
+	// {
+	// 	return -EINVAL;
+	// }
 
 	/* Tell remoteproc to load and start remote cpu */
 	sprintf(sbuf,
@@ -232,54 +233,6 @@ int OpenAMPLoadFirmware(void)
 	{
 		return 0;
 	}
-
-	// /* Load rpmsg_char driver */
-	// printf("\r\nMaster>probe rpmsg_char\r\n");
-	// ret = system("modprobe rpmsg_char");
-	// if (ret < 0)
-	// {
-	// 	perror("Failed to load rpmsg_char driver.\n");
-	// 	return -EINVAL;
-	// }
-
-	// printf("\r\n Open rpmsg dev %s! \r\n", rpmsg_dev);
-	// sprintf(fpath, "%s/devices/%s", RPMSG_BUS_SYS, rpmsg_dev);
-	// if (access(fpath, F_OK))
-	// {
-	// 	fprintf(stderr, "Not able to access rpmsg device %s, %s\n",
-	// 			fpath, strerror(errno));
-	// 	return -EINVAL;
-	// }
-	// ret = bind_rpmsg_chrdev(rpmsg_dev);
-	// if (ret < 0)
-	// 	return ret;
-	// charfd = get_rpmsg_chrdev_fd(rpmsg_dev, rpmsg_char_name);
-	// if (charfd < 0)
-	// 	return charfd;
-
-	// /* Create endpoint from rpmsg char driver */
-	// strcpy(eptinfo.name, "rpmsg-openamp-demo-channel");
-	// eptinfo.src = 0;
-	// eptinfo.dst = 0xFFFFFFFF;
-	// ret = rpmsg_create_ept(charfd, &eptinfo);
-	// if (ret)
-	// {
-	// 	printf("failed to create RPMsg endpoint.\n");
-	// 	return -EINVAL;
-	// }
-	// if (!get_rpmsg_ept_dev_name(rpmsg_char_name, eptinfo.name,
-	// 							ept_dev_name))
-	// 	return -EINVAL;
-	// sprintf(ept_dev_path, "/dev/%s", ept_dev_name);
-	// fd = open(ept_dev_path, O_RDWR | O_NONBLOCK);
-	// if (fd < 0)
-	// {
-	// 	perror("Failed to open rpmsg device.");
-	// 	close(charfd);
-	// 	return -1;
-	// }
-
-	// return 0;
 }
 
 int OpenAMPLoadDriver(void)
@@ -291,7 +244,10 @@ int OpenAMPLoadDriver(void)
 	ret = system("modprobe rpmsg_char");
 	if (ret < 0)
 	{
-		perror("Failed to load rpmsg_char driver.\n");
+		// perror("Failed to load rpmsg_char driver.\n");
+		printf("\033[31m"
+			   "Failed to load rpmsg_char driver.\n"
+			   "\033[0m");
 		return -EINVAL;
 	}
 
@@ -324,6 +280,8 @@ int OpenAMPLoadDriver(void)
 								ept_dev_name))
 		return -EINVAL;
 	sprintf(ept_dev_path, "/dev/%s", ept_dev_name);
+
+	// open file
 	fd = open(ept_dev_path, O_RDWR | O_NONBLOCK);
 	if (fd < 0)
 	{
@@ -331,7 +289,6 @@ int OpenAMPLoadDriver(void)
 		close(charfd);
 		return -1;
 	}
-
 	return 0;
 }
 
@@ -385,15 +342,21 @@ int echo_test()
 // stop the openamp
 int OpenAMPStop(void)
 {
+	// destroy the mutex
+	pthread_mutex_destroy(&rpmsg_mutex);
+
 	close(fd);
 	if (charfd >= 0)
 		close(charfd);
 
-	system("modprobe -r rpmsg_char");
-	sprintf(sbuf,
-			"/sys/class/remoteproc/remoteproc%u/state",
-			r5_id);
-	(void)file_write(sbuf, "stop");
+	// // remove driver
+	// system("modprobe -r rpmsg_char");
+
+	// stop processor
+	// sprintf(sbuf,
+	// 		"/sys/class/remoteproc/remoteproc%u/state",
+	// 		r5_id);
+	// (void)file_write(sbuf, "stop");
 
 	return 0;
 }
@@ -404,12 +367,10 @@ int OpenAMPTest(void)
 	u8 temp_buff[MAX_RPMSG_SIZE] = {0};
 
 	R5_state.rpmsg_type = READ_R5_STATE_FROM_APU;
-	R5_cmd.rpmsg_type=SEND_R5_CMD_FROM_APU;
+	R5_cmd.rpmsg_type = SEND_R5_CMD_FROM_APU;
 
 	printf("\r\n **********************************");
 	printf("\r\n  Openamp test\r\n");
-
-
 
 	// copy the date
 	memcpy(temp_buff, &R5_cmd, sizeof(r5_cmd));
@@ -440,4 +401,104 @@ int OpenAMPTest(void)
 	printf("\rps core tmp:%d\n", R5_state.ps_core_temp);
 	printf("\rpl core tmp:%d\n", R5_state.pl_core_temp);
 	return 0;
+}
+
+// init openamp
+int OpenAMPInit(void)
+{
+	int state;
+	// state = OpenAMPLoadFirmware();
+
+	// if (0 == state)
+	// {
+	// 	printf("\rOpenAMP load firmware success!\r\n");
+	// }
+	// else
+	// {
+	// 	perror("\rOpenAMP load firmware Failed!\r\n");
+	// }
+
+	// // must wait remote processor init
+	// sleep(3);
+
+	printf("\rLoad OpenAMP device driver!\r\n");
+
+	if (0 == OpenAMPLoadDriver())
+	{
+		printf("\rOpenAMP load driver success!\r\n");
+	}
+	else
+	{
+		perror("\rOpenAMP load driver Failed!\r\n");
+	}
+
+	// wait for the driver load to complete
+	sleep(3);
+
+	// init mutex
+	state = pthread_mutex_init(&rpmsg_mutex, NULL);
+	if (state != 0)
+	{
+		perror("\rrpmsg mutex initialization failed!\n");
+		exit(EXIT_FAILURE);
+	}
+
+	return state;
+}
+
+// send a rpmsg
+int RPMsgSend(void *msg, u8 msg_size)
+{
+	int bytes_sent, state;
+	u8 temp_buff[MAX_RPMSG_SIZE] = {0};
+	if (msg_size > MAX_RPMSG_SIZE)
+	{
+		perror("\rrpmsg size exceed!\n");
+	}
+
+	// copy the date
+	memcpy(temp_buff, msg, msg_size);
+
+	// pthread_mutex_lock(&rpmsg_mutex);
+	// send the rpmsg
+	bytes_sent = write(fd, temp_buff, MAX_RPMSG_SIZE);
+	// pthread_mutex_unlock(&rpmsg_mutex);
+
+	if (bytes_sent <= 0)
+	{
+		perror("\r\n rpmsg send error!\n");
+		// printf(" .. \r\n");
+		state = -1;
+	}
+	else
+	{
+		state = 0;
+	}
+	return state;
+}
+
+// read a rpmsg
+int RPMsgRead(void *msg, u8 msg_size)
+{
+	int bytes_rcvd, state;
+	u8 temp_buff[MAX_RPMSG_SIZE] = {0};
+	if (msg_size > MAX_RPMSG_SIZE)
+	{
+		perror("\rrpmsg size exceed!\n");
+	}
+
+	// pthread_mutex_lock(&rpmsg_mutex);
+	// read the msg
+	do
+	{
+		bytes_rcvd = read(fd, temp_buff, MAX_RPMSG_SIZE);
+	} while ((bytes_rcvd < MAX_RPMSG_SIZE) || (bytes_rcvd < 0));
+	// pthread_mutex_unlock(&rpmsg_mutex);
+
+	state = 0;
+
+	// copy the data
+	memcpy(msg, temp_buff, msg_size);
+
+	return state;
 }

@@ -2,37 +2,33 @@
 
 #include "openamp.h"
 #include "freemodbus_tcp.h"
+#include "utility_print.h"
 
 // c++11 library
 #include <thread>
 #include <iostream>
+#include <csignal>
 #include "robot.h"
 #include "inter_core_com.h"
-
-// extern variables
-extern USHORT usRegHoldingBuf[REG_HOLDING_NREGS];
-extern r5_cmd R5_cmd;
 
 // thread function declaration
 static void modbus_task();
 static void echo_task();
 
-int main()
+robot ccr4(0.001, 0.01);
+
+void signalHandler(int signum)
 {
-  int i;
-  for (i = 0; i <= MOTOR_NUM; i++)
-  {
-    usRegHoldingBuf[i * MAX_RPMSG_SIZE / 2] = i;
-  }
+  std::cout << "Interrupt signal (" << signum << ") received.\n";
 
-  // nmt
-  // nmt nmt;
+  ccr4.Stop();
 
-  // init motors with motor id
-  // maxon upwheel(2), upclaw(1), pulley1(3), pulley2(4), downclaw1(5), downclaw2(6);
+  exit(signum);
+}
 
-  // robot
-  // robot robot(nmt,upwheel, upclaw, pulley1, pulley2, downclaw1, downclaw2);
+int main(int argc, char **argv)
+{
+  PRINT_BOLDMAGENTA("\rAIRS CCR4 Robort START!\n");
 
   // modbus thread
   std::thread modbus_thread(modbus_task);
@@ -42,11 +38,14 @@ int main()
   std::thread openamp_thread(echo_task);
   openamp_thread.detach();
 
+  signal(SIGINT, signalHandler);
+
   for (;;)
   {
-    // delay 1us
-    usleep(1);
+    // delay 1s
+    sleep(1);
   }
+
   return 0;
 }
 
@@ -89,51 +88,7 @@ void modbus_task()
 
 void echo_task()
 {
-  int res;
-  // openAMP load firmware
-  res = OpenAMPLoadFirmware();
-  if (0 == res)
-  {
-    std::cout << "\rOpenAMP load firmware success!\r\n"
-              << std::endl;
-  }
-  else
-  {
-    std::cout << "\rOpenAMP load firmware Failed!\r\n"
-              << std::endl;
-  }
 
-  // must wait remote processor init
-  sleep(5);
-
-  std::cout << "\rLoad OpenAMP device driver!\r\n"
-            << std::endl;
-  // load device driver
-  res = OpenAMPLoadDriver();
-  std::cout << "\rLoad OpenAMP device driver success!\r\n"
-            << std::endl;
-
-  // wait remote processor init
-  sleep(5);
-
-  for (;;)
-  {
-    // start nmt
-    R5_cmd.nmt_control = 1;
-
-    // echo_test();
-    OpenAMPTest();
-
-    sleep(2);
-
-    // stop nmt
-    R5_cmd.nmt_control=2;
-
-        // echo_test();
-    OpenAMPTest();
-
-    sleep(2);
-    // break;
-  }
-  OpenAMPStop();
+  // ccr4 init
+  ccr4.Init();
 }

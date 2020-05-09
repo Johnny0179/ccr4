@@ -1,0 +1,1 @@
+echo r5-0-freertos.elf > /sys/class/remoteproc/remoteproc0/firmware
