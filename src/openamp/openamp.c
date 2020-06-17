@@ -208,18 +208,18 @@ static int get_rpmsg_chrdev_fd(const char *rpmsg_dev_name,
 
 int OpenAMPLoadFirmware(void)
 {
-	// /* Bring up remote firmware */
-	// printf("\r\nMaster>Loading remote firmware\r\n");
+	/* Bring up remote firmware */
+	printf("\r\nMaster>Loading remote firmware\r\n");
 
-	// /* Write firmware name to remoteproc sysfs interface */
-	// sprintf(sbuf,
-	// 		"/sys/class/remoteproc/remoteproc%u/firmware",
-	// 		r5_id);
+	/* Write firmware name to remoteproc sysfs interface */
+	sprintf(sbuf,
+			"/sys/class/remoteproc/remoteproc%u/firmware",
+			r5_id);
 
-	// if (0 != file_write(sbuf, "r5-0-freertos.elf"))
-	// {
-	// 	return -EINVAL;
-	// }
+	if (0 != file_write(sbuf, "r5-0-freertos.elf"))
+	{
+		return -EINVAL;
+	}
 
 	/* Tell remoteproc to load and start remote cpu */
 	sprintf(sbuf,
@@ -353,10 +353,10 @@ int OpenAMPStop(void)
 	// system("modprobe -r rpmsg_char");
 
 	// stop processor
-	// sprintf(sbuf,
-	// 		"/sys/class/remoteproc/remoteproc%u/state",
-	// 		r5_id);
-	// (void)file_write(sbuf, "stop");
+	sprintf(sbuf,
+			"/sys/class/remoteproc/remoteproc%u/state",
+			r5_id);
+	(void)file_write(sbuf, "stop");
 
 	return 0;
 }
@@ -407,19 +407,19 @@ int OpenAMPTest(void)
 int OpenAMPInit(void)
 {
 	int state;
-	// state = OpenAMPLoadFirmware();
+	state = OpenAMPLoadFirmware();
 
-	// if (0 == state)
-	// {
-	// 	printf("\rOpenAMP load firmware success!\r\n");
-	// }
-	// else
-	// {
-	// 	perror("\rOpenAMP load firmware Failed!\r\n");
-	// }
+	if (0 == state)
+	{
+		printf("\rOpenAMP load firmware success!\r\n");
+	}
+	else
+	{
+		perror("\rOpenAMP load firmware Failed!\r\n");
+	}
 
-	// // must wait remote processor init
-	// sleep(3);
+	// must wait remote processor init
+	sleep(3);
 
 	printf("\rLoad OpenAMP device driver!\r\n");
 

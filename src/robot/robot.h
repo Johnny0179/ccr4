@@ -1,8 +1,12 @@
 #pragma once
 #include "r5_controllers.h"
 #include "inter_core_com.h"
+#include "freemodbus_tcp.h"
 #include <csignal>
 #include <thread>
+#include <iostream>
+#include <cstdint>
+#include <cstring>
 // enum class cmd
 // {
 //     idle
@@ -25,20 +29,18 @@ private:
     float a53_control_freq_KHz_;
 
     // r5 controllers
-    r5_controllers *r5_controllers_ = nullptr;
+    // r5_controllers *r5_controllers_ = nullptr;
 
     // r5_system_state
-    r5_state r5_state_;
+    r5_state *r5_state_ = nullptr;
 
     // r5_system_cmd
-    r5_cmd r5_cmd_;
+    r5_cmd *r5_cmd_ = nullptr;
 
 public:
-    explicit robot(float a53_control_freq_KHz, float r5_control_freq_KHz) : a53_control_freq_KHz_(a53_control_freq_KHz)
-    {
-        r5_controllers_ = new r5_controllers(r5_control_freq_KHz);
-    }
-    ~robot() { delete r5_controllers_; }
+    robot(float a53_control_freq_KHz, float r5_control_freq_KHz , USHORT reg[]);
+
+    ~robot();
 
     // Initialization
     void Init();
@@ -48,4 +50,16 @@ public:
 
     // Stop
     void Stop();
+
+    // Set R5 command
+    void SetR5_0Cmd();
+
+    // read r5 state
+    void ReadR5_0State();
+
+    // motion control
+    void MotionControl(void);
+
+    // motion FSM
+    void MotionFSM(enum motion_cmd &motion_cmd);
 };

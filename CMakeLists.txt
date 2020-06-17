@@ -4,7 +4,7 @@ cmake_minimum_required (VERSION 3.2)
 # add_compile_options(-std=c++11)
 
 # set project name
-set(project_name "ccr4_app")
+set(project_name "ccr4_apu")
 
 project(${project_name} C CXX)
 

@@ -3,6 +3,7 @@
         "openamp.h": "c",
         "freemodbus_tcp.h": "c",
         "iostream": "cpp",
-        "ostream": "cpp"
+        "ostream": "cpp",
+        "thread": "cpp"
     }
 }

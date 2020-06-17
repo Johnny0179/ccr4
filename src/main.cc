@@ -11,24 +11,30 @@
 #include "robot.h"
 #include "inter_core_com.h"
 
+// extern variables
+extern USHORT usRegHoldingBuf[REG_HOLDING_NREGS];
+
 // thread function declaration
 static void modbus_task();
 static void echo_task();
+static void ReadR5_0_State();
 
-robot ccr4(0.001, 0.01);
+robot ccr4(0.01, 0.1,usRegHoldingBuf);
 
 void signalHandler(int signum)
 {
   std::cout << "Interrupt signal (" << signum << ") received.\n";
 
   ccr4.Stop();
-
+  ccr4.~robot();
   exit(signum);
 }
 
 int main(int argc, char **argv)
 {
   PRINT_BOLDMAGENTA("\rAIRS CCR4 Robort START!\n");
+    // ccr4 init
+  ccr4.Init();
 
   // modbus thread
   std::thread modbus_thread(modbus_task);
@@ -37,6 +43,10 @@ int main(int argc, char **argv)
   // openamp thread
   std::thread openamp_thread(echo_task);
   openamp_thread.detach();
+
+  // read r5 state thread
+  std::thread read_r5_0_state_thred(ReadR5_0_State);
+  read_r5_0_state_thred.detach();
 
   signal(SIGINT, signalHandler);
 
@@ -65,7 +75,7 @@ void modbus_task()
     {
       for (;;)
       {
-        // openamp communication
+        // openamp communication, copy the robot state
         // echo_test();
         if (eMBPoll() == MB_ENOERR)
         {
@@ -88,7 +98,17 @@ void modbus_task()
 
 void echo_task()
 {
+  // start robot
+  // ccr4.Start();
+}
 
-  // ccr4 init
-  ccr4.Init();
+void ReadR5_0_State()
+{
+  for (;;)
+  {
+    // ccr4.ReadR5_0State();
+
+    // read r5 state frequency, 0.01kHz
+    usleep(100000);
+  }
 }
